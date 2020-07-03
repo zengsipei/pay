@@ -60,6 +60,14 @@ class Support
     private static $instance;
 
     /**
+     * 海关所需原始支付数据
+     * @var $initalRequest
+     * @var $initalResponse
+     */
+    private $initalRequest;
+    private $initalResponse;
+
+    /**
      * Bootstrap.
      *
      * @author yansongda <me@yansongda.cn>
@@ -153,14 +161,17 @@ class Support
     {
         Events::dispatch(new Events\ApiRequesting('Wechat', '', self::$instance->getBaseUri().$endpoint, $data));
 
+        $xml = self::toXml($data);
         $result = self::$instance->post(
             $endpoint,
-            self::toXml($data),
+            $xml,
             $cert ? [
                 'cert' => self::$instance->cert_client,
                 'ssl_key' => self::$instance->cert_key,
             ] : []
         );
+        self::$instance->initalRequest = self::$instance->baseUri . '?' . $xml;
+        self::$instance->initalRequest = $result;
         $result = is_array($result) ? $result : self::fromXml($result);
 
         Events::dispatch(new Events\ApiRequested('Wechat', '', self::$instance->getBaseUri().$endpoint, $result));
@@ -375,6 +386,7 @@ class Support
      * @author yansongda <me@yansongda.cn>
      *
      * @param $endpoint
+     * @param $result
      *
      * @throws GatewayException
      * @throws InvalidArgumentException
@@ -395,7 +407,11 @@ class Support
         if ('pay/getsignkey' === $endpoint ||
             false !== strpos($endpoint, 'mmpaymkttransfers') ||
             self::generateSign($result) === $result['sign']) {
-            return new Collection($result);
+            return new Collection([
+                'result' => new Collection($result),
+                'initRequest' => self::getInstance()->initalRequest,
+                'initResponse' => self::getInstance()->initalResponse
+            ]);
         }
 
         Events::dispatch(new Events\SignFailed('Wechat', '', $result));

@@ -53,6 +53,14 @@ class Support
     private static $instance;
 
     /**
+     * 海关所需原始支付数据
+     * @var $initalRequest
+     * @var $initalResponse
+     */
+    private $initalRequest;
+    private $initalResponse;
+
+    /**
      * Bootstrap.
      *
      * @author yansongda <me@yansongda.cn>
@@ -140,7 +148,10 @@ class Support
             return ('' == $value || is_null($value)) ? false : true;
         });
 
-        $result = json_decode(self::$instance->post('', $data), true);
+        $result = self::$instance->post('', $data);
+        self::$instance->initalRequest = self::$instance->baseUri . '?' . urldecode(http_build_query($data));
+        self::$instance->initalResponse = $result;
+        $result = json_decode($result, true);
 
         Events::dispatch(new Events\ApiRequested('Alipay', '', self::$instance->getBaseUri(), $result));
 
@@ -407,8 +418,8 @@ class Support
         if (self::verifySign($result[$method], true, $result['sign'])) {
             return new Collection([
                 'result' => new Collection($result[$method]),
-                'initalRequest' => self::$instance->getBaseUri() . '?' . urldecode(http_build_query($data)),
-                'initalResponse' => json_encode($result, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+                'initalRequest' => self::$instance->initalRequest,
+                'initalResponse' => self::$instance->initalResponse
             ]);
         }
 
