@@ -407,7 +407,7 @@ class Support
         if (self::verifySign($result[$method], true, $result['sign'])) {
             return new Collection([
                 'result' => new Collection($result[$method]),
-                'initalRequest' => self::$instance->getBaseUri() . '?' . urldecode(http_build_query($data)),
+                'initalRequest' => self::$instance->getBaseUri() . '&' . urldecode(http_build_query($data)),
                 'initalResponse' => json_encode($result, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
             ]);
         }
