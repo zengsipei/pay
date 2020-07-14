@@ -234,7 +234,7 @@ class Wechat implements GatewayApplicationInterface
      */
     public function refund(array $order): Collection
     {
-        $this->payload = Support::filterPayload($this->payload, $order, true);
+        $this->payload = Support::filterPayload($this->payload, $order);
 
         Events::dispatch(new Events\MethodCalled('Wechat', 'Refund', $this->gateway, $this->payload));
 
