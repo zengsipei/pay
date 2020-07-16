@@ -60,7 +60,7 @@ class Support
     private static $instance;
 
     /**
-     * 娴峰叧鎵�闇�鍘熷鏀粯鏁版嵁
+     * 海关所需原始支付数据
      * @var $initalRequest
      * @var $initalResponse
      */
