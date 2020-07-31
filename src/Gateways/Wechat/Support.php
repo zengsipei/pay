@@ -60,7 +60,7 @@ class Support
     private static $instance;
 
     /**
-     * 海关所需原始支付数据
+     * 娴峰叧鎵�闇�鍘熷鏀粯鏁版嵁
      * @var $initalRequest
      * @var $initalResponse
      */
@@ -171,7 +171,7 @@ class Support
             ] : []
         );
         self::$instance->initalRequest = self::$instance->baseUri . '?' . $xml;
-        self::$instance->initalRequest = $result;
+        self::$instance->initalResponse = $result;
         $result = is_array($result) ? $result : self::fromXml($result);
 
         Events::dispatch(new Events\ApiRequested('Wechat', '', self::$instance->getBaseUri().$endpoint, $result));
