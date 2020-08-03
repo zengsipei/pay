@@ -22,17 +22,10 @@ use Yansongda\Supports\Str;
  * @method Response webCrossborderPayB2CBatch(array $config) 订单批量支付（web）
  * @method Collection scanPay(array $config) 直连扫码支付
  * @method Collection shortcutPayApplyUnionPayNew(array $config) 跨境快捷无码支付 - 商户直连快捷支付(免密)
- *
- * ZTODO:待完成
- * @method Collection creditPayApply(array $config) 信用卡一键支付申请
- * @method Collection creditPayConfirm(array $config) 信用卡一键支付确认
- * @method Collection SMSResend(array $config) 短信重发
  * @method Collection wechatMiniProgram(array $config) 微信小程序支付
  * @method Collection appPay(array $config) APP支付
  * @method Collection wechatScanDirect(array $config) 微信直连扫码支付
  * @method Collection alScanDirect(array $config) 支付宝直连扫码支付
- * @method Collection mobaoOrderSplit(array $config) 订单拆分
- * @method Collection realNameAuth(array $config) 二要素实名认证
  */
 class Mobaopay implements GatewayApplicationInterface
 {
@@ -98,6 +91,7 @@ class Mobaopay implements GatewayApplicationInterface
 
     public function refund(array $order): Collection
     {
+        $order['overTime'] = $order['overTime'] ?: 7200;
         $this->payload = array_merge($this->payload, $order);
         $this->payload['apiName'] = 'REFUND_DIRECT';
         $this->payload['apiVersion'] = '1.0.0.1';
@@ -224,6 +218,19 @@ class Mobaopay implements GatewayApplicationInterface
     public function payment($order, string $type = 'PAYMENT_PUSH_SEND'): Collection
     {
         $gateway = get_class($this).'\\Payment';
+
+        if (!is_callable([new $gateway(), $type])) {
+            throw new GatewayException("{$gateway} Done Not Exist Or Done Not Has {$type} Method");
+        }
+
+        $this->payload = array_merge($this->payload, $order);
+
+        return call_user_func([new $gateway(), $type], $this->payload);
+    }
+
+    public function feature($order, string $type): Collection
+    {
+        $gateway = get_class($this).'\\Feature';
 
         if (!is_callable([new $gateway(), $type])) {
             throw new GatewayException("{$gateway} Done Not Exist Or Done Not Has {$type} Method");

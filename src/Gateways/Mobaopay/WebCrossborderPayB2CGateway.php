@@ -7,19 +7,27 @@ use Symfony\Component\HttpFoundation\Response;
 use Yansongda\Pay\Events;
 
 /**
- * 订单支付（web）
- * 1、用户在电商系统下单后，电商系统引导用户浏览器跳转到收银台
- * 2、用户在收银台选择支付方式（支付方式有网银支付、一键支付、非银行卡支付、快捷支付、微信扫码、支付宝扫码等）用户可选择支付方式为用户所在电商系统在跨境支付开通的支付方式。
- * 3、根据商户支付请求，创建支付订单
+ * 订单支付
  * @package Yansongda\Pay\Gateways\Mobaopay
  */
 class WebCrossborderPayB2C extends Gateway
 {
+    /**
+     * 支付（web）
+     * 1、用户在电商系统下单后，电商系统引导用户浏览器跳转到收银台
+     * 2、用户在收银台选择支付方式（支付方式有网银支付、一键支付、非银行卡支付、快捷支付、微信扫码、支付宝扫码等）用户可选择支付方式为用户所在电商系统在跨境支付开通的支付方式。
+     * 3、根据商户支付请求，创建支付订单
+     * @param string $endpoint
+     * @param array $payload
+     * @return Response
+     * @throws \Yansongda\Pay\Exceptions\InvalidConfigException
+     */
     public function pay($endpoint, array $payload): Response
     {
         $payload['apiName'] = 'WEB_CROSSBORDER_PAY_B2C';
         $payload['apiVersion'] = '1.0.0.1';
         $payload['tradeDate'] = date('Ymd');
+        $payload['overTime'] = $payload['overTime'] ?: 7200;
         $payload['customerIP'] = Support::getIp();
         $sign_requird = [
             'apiName' => $payload['apiName'],
@@ -71,6 +79,12 @@ class WebCrossborderPayB2C extends Gateway
         return new Response($sHtml);
     }
 
+    /**
+     * 查询
+     * 查询订单的详细信息和状态。
+     * @param $order
+     * @return array|string[]
+     */
     public function find($order): array
     {
         return [
