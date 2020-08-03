@@ -17,6 +17,7 @@ use Yansongda\Supports\Config;
 use Yansongda\Supports\Str;
 
 /**
+ * 摩宝支付
  * @package Yansongda\Pay\Gateways
  * @method Response webCrossborderPayB2C(array $config) 订单支付（web）
  * @method Response webCrossborderPayB2CBatch(array $config) 订单批量支付（web）
@@ -202,6 +203,53 @@ class Mobaopay implements GatewayApplicationInterface
         return $customize;
     }
 
+    /**
+     * 商户直连信用卡支付
+     * @param $order
+     * @param string $type
+     * @return Collection
+     * @throws GatewayException
+     */
+    public function creditPay($order, string $type = 'creditPayApply'): Collection
+    {
+        $gateway = get_class($this).'\\CreditPay';
+
+        if (!is_callable([new $gateway(), $type])) {
+            throw new GatewayException("{$gateway} Done Not Exist Or Done Not Has {$type} Method");
+        }
+
+        $this->payload = array_merge($this->payload, $order);
+
+        return call_user_func([new $gateway(), $type], $this->payload);
+    }
+
+    /**
+     * 特色功能
+     * @param $order
+     * @param string $type
+     * @return Collection
+     * @throws GatewayException
+     */
+    public function feature($order, string $type): Collection
+    {
+        $gateway = get_class($this).'\\Feature';
+
+        if (!is_callable([new $gateway(), $type])) {
+            throw new GatewayException("{$gateway} Done Not Exist Or Done Not Has {$type} Method");
+        }
+
+        $this->payload = array_merge($this->payload, $order);
+
+        return call_user_func([new $gateway(), $type], $this->payload);
+    }
+
+    /**
+     * 跨境银联快捷支付
+     * @param $order
+     * @param string $type
+     * @return Collection
+     * @throws GatewayException
+     */
     public function shortcutPay($order, string $type = 'getSignMessageUnionPay'): Collection
     {
         $gateway = get_class($this).'\\ShortcutPay';
@@ -215,6 +263,13 @@ class Mobaopay implements GatewayApplicationInterface
         return call_user_func([new $gateway(), $type], $this->payload);
     }
 
+    /**
+     * 海关支付单
+     * @param $order
+     * @param string $type
+     * @return Collection
+     * @throws GatewayException
+     */
     public function payment($order, string $type = 'PAYMENT_PUSH_SEND'): Collection
     {
         $gateway = get_class($this).'\\Payment';
@@ -228,9 +283,16 @@ class Mobaopay implements GatewayApplicationInterface
         return call_user_func([new $gateway(), $type], $this->payload);
     }
 
-    public function feature($order, string $type): Collection
+    /**
+     * 通关宝
+     * @param $order
+     * @param string $type
+     * @return Collection
+     * @throws GatewayException
+     */
+    public function thirdPartyPayment($order, string $type = 'THIRD_PARTY_PAYMENT_SUBMIT'): Collection
     {
-        $gateway = get_class($this).'\\Feature';
+        $gateway = get_class($this).'\\ThirdPartyPayment';
 
         if (!is_callable([new $gateway(), $type])) {
             throw new GatewayException("{$gateway} Done Not Exist Or Done Not Has {$type} Method");
