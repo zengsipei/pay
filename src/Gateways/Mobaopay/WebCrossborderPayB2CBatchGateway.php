@@ -10,7 +10,7 @@ use Yansongda\Pay\Events;
  * 订单批量支付
  * @package Yansongda\Pay\Gateways\Mobaopay
  */
-class WebCrossborderPayB2CBatch extends Gateway
+class WebCrossborderPayB2CBatchGateway extends Gateway
 {
     /**
      * 支付（web）
@@ -57,7 +57,7 @@ class WebCrossborderPayB2CBatch extends Gateway
 
         $payload['signMsg'] = Support::generateSign($sign_requird);
 
-        Events::dispatch(new Events\PayStarted('Mobaopay', 'WebCrossborderPayB2CBatch', $endpoint, $payload));
+        Events::dispatch(new Events\PayStarted('Mobaopay', 'WebCrossborderPayB2CBatchGateway', $endpoint, $payload));
 
         return $this->buildPayHtml($endpoint, $payload);
     }
