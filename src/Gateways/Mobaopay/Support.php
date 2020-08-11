@@ -83,7 +83,7 @@ class Support
 
         $result = self::$instance->post('', $data);
         self::$instance->initalRequest = self::$instance->baseUri . '?' . urldecode(http_build_query($data));
-        self::$instance->initalResponse = self::toXml($result);
+        self::$instance->initalResponse = is_array($result) ? self::toXml($result) : $result;
         $result = is_array($result) ? $result : self::fromXml($result);
 
         Events::dispatch(new Events\ApiRequested('Mobaopay', '', self::$instance->getBaseUri(), $result));
