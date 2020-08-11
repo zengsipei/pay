@@ -94,7 +94,7 @@ class Support
     protected static function processingApiResult(array $result): Collection
     {
         if (!isset($result['signMsg']) || '00' != $result['respData']['respCode']) {
-            throw new GatewayException('Get Mobaopay API Error:'.($result['respData'] ?? $result['respData']['respDesc'] ?? ''), $result);
+            throw new GatewayException('Get Mobaopay API Error:'.($result['respData']['respDesc'] ?? ''), $result);
         }
         // ZTODO:摩宝推荐不验签
         if (true) {
