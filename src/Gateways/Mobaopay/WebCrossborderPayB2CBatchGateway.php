@@ -2,9 +2,8 @@
 
 namespace Yansongda\Pay\Gateways\Mobaopay;
 
-use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpFoundation\Response;
 use Yansongda\Pay\Events;
+use Yansongda\Supports\Collection;
 
 /**
  * 订单批量支付
@@ -19,10 +18,8 @@ class WebCrossborderPayB2CBatchGateway extends Gateway
      * 3、根据商户支付请求，创建支付订单
      * @param string $endpoint
      * @param array $payload
-     * @return Response
-     * @throws \Yansongda\Pay\Exceptions\InvalidConfigException
      */
-    public function pay($endpoint, array $payload): Response
+    public function pay($endpoint, array $payload): Collection
     {
         $payload['apiName'] = 'WEB_CROSSBORDER_PAY_B2C_BATCH';
         $payload['apiVersion'] = '1.0.0.1';
@@ -60,25 +57,6 @@ class WebCrossborderPayB2CBatchGateway extends Gateway
         Events::dispatch(new Events\PayStarted('Mobaopay', 'WebCrossborderPayB2CBatchGateway', $endpoint, $payload));
 
         return $this->buildPayHtml($endpoint, $payload);
-    }
-
-    protected function buildPayHtml($endpoint, $payload, $method = 'POST'): Response
-    {
-        if ('GET' === strtoupper($method)) {
-            return new RedirectResponse($endpoint.'&'.http_build_query($payload));
-        }
-
-        $sHtml = "<form id='mobaopay_submit' name='mobaopay_submit' action='".$endpoint."' method='".$method."'>";
-
-        foreach ($payload as $key => $val) {
-            $val = str_replace("'", '&apos;', $val);
-            $sHtml .= "<input type='hidden' name='".$key."' value='".$val."'/>";
-        }
-
-        $sHtml .= "<input type='submit' value='ok' style='display:none;'></form>";
-        $sHtml .= "<script>document.forms['mobaopay_submit'].submit();</script>";
-
-        return new Response($sHtml);
     }
 
     /**
