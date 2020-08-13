@@ -100,8 +100,8 @@ class Support
         if (true) {
             return new Collection([
                 'result' => new Collection($result),
-                'initRequest' => self::getInstance()->initalRequest,
-                'initResponse' => self::getInstance()->initalResponse
+                'initalRequest' => self::getInstance()->initalRequest,
+                'initalResponse' => self::getInstance()->initalResponse
             ]);
         }
 

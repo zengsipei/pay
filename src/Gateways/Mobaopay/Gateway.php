@@ -37,8 +37,8 @@ abstract class Gateway implements GatewayInterface
 
         return new Collection([
             'result' => new Response($sHtml),
-            'initRequest' => $endpoint . '?' . urldecode(http_build_query($payload)),
-            'initResponse' => ''
+            'initalRequest' => $endpoint . '?' . urldecode(http_build_query($payload)),
+            'initalResponse' => ''
         ]);
     }
 }
