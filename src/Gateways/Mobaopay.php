@@ -92,10 +92,11 @@ class Mobaopay implements GatewayApplicationInterface
 
     public function refund(array $order): Collection
     {
-        $order['overTime'] = $order['overTime'] ?: 7200;
         $this->payload = array_merge($this->payload, $order);
         $this->payload['apiName'] = 'REFUND_DIRECT';
         $this->payload['apiVersion'] = '1.0.0.1';
+        $this->payload['overTime'] = $this->payload['overTime'] ?: 7200;
+        $this->payload['customerIP'] = Support::getIp();
         $this->payload['signMsg'] = Support::generateSign($this->payload);
 
         Events::dispatch(new Events\MethodCalled('Mobaopay', 'Refund', $this->gateway, $this->payload));
