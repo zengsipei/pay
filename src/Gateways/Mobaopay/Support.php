@@ -157,7 +157,7 @@ class Support
             $buff .= ('signMsg' != $k) ? "{$k}={$v}&" : '';
         }
 
-        Log::debug('Mobaopay Generate Sign Content Before Trim', [$data, $stringToBeSigned]);
+        Log::debug('Mobaopay Generate Sign Content Before Trim', [$data, $buff]);
 
         return trim($buff, '&');
     }
