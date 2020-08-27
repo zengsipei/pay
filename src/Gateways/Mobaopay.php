@@ -271,7 +271,7 @@ class Mobaopay implements GatewayApplicationInterface
      * @return Collection
      * @throws GatewayException
      */
-    public function payment($order, string $type = 'PAYMENT_PUSH_SEND'): Collection
+    public function payment($order, string $type = 'paymentPushSend'): Collection
     {
         $gateway = get_class($this).'\\Payment';
 
@@ -291,7 +291,7 @@ class Mobaopay implements GatewayApplicationInterface
      * @return Collection
      * @throws GatewayException
      */
-    public function thirdPartyPayment($order, string $type = 'THIRD_PARTY_PAYMENT_SUBMIT'): Collection
+    public function thirdPartyPayment($order, string $type = 'thirdPartyPaymentSubmit'): Collection
     {
         $gateway = get_class($this).'\\ThirdPartyPayment';
 
