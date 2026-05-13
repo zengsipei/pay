@@ -1,131 +1,166 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Yansongda\Pay;
 
-use Exception;
-use Yansongda\Pay\Contracts\GatewayApplicationInterface;
-use Yansongda\Pay\Exceptions\InvalidGatewayException;
-use Yansongda\Pay\Gateways\Alipay;
-use Yansongda\Pay\Gateways\Wechat;
-use Yansongda\Pay\Listeners\KernelLogSubscriber;
-use Yansongda\Supports\Config;
-use Yansongda\Supports\Log;
-use Yansongda\Supports\Logger;
-use Yansongda\Supports\Str;
+use Closure;
+use Psr\Container\ContainerInterface;
+use Yansongda\Artful\Artful;
+use Yansongda\Artful\Contract\ConfigInterface;
+use Yansongda\Artful\Event\ArtfulEnd;
+use Yansongda\Artful\Event\ArtfulStart;
+use Yansongda\Artful\Event\HttpEnd;
+use Yansongda\Artful\Event\HttpStart;
+use Yansongda\Artful\Exception\ContainerException;
+use Yansongda\Artful\Exception\ServiceNotFoundException;
+use Yansongda\Pay\Provider\Airwallex;
+use Yansongda\Pay\Provider\Alipay;
+use Yansongda\Pay\Provider\Douyin;
+use Yansongda\Pay\Provider\Jsb;
+use Yansongda\Pay\Provider\Paypal;
+use Yansongda\Pay\Provider\Stripe;
+use Yansongda\Pay\Provider\Unipay;
+use Yansongda\Pay\Provider\Wechat;
+use Yansongda\Pay\Service\AirwallexServiceProvider;
+use Yansongda\Pay\Service\AlipayServiceProvider;
+use Yansongda\Pay\Service\DouyinServiceProvider;
+use Yansongda\Pay\Service\JsbServiceProvider;
+use Yansongda\Pay\Service\PaypalServiceProvider;
+use Yansongda\Pay\Service\StripeServiceProvider;
+use Yansongda\Pay\Service\UnipayServiceProvider;
+use Yansongda\Pay\Service\WechatServiceProvider;
 
 /**
- * @method static Alipay alipay(array $config) 支付宝
- * @method static Wechat wechat(array $config) 微信
+ * @method static Alipay    alipay(array $config = [], $container = null)
+ * @method static Airwallex airwallex(array $config = [], $container = null)
+ * @method static Wechat    wechat(array $config = [], $container = null)
+ * @method static Unipay    unipay(array $config = [], $container = null)
+ * @method static Jsb       jsb(array $config = [], $container = null)
+ * @method static Douyin    douyin(array $config = [], $container = null)
+ * @method static Paypal    paypal(array $config = [], $container = null)
+ * @method static Stripe    stripe(array $config = [], $container = null)
  */
 class Pay
 {
     /**
-     * Config.
-     *
-     * @var Config
+     * Provider 名称常量.
      */
-    protected $config;
+    public const PROVIDER_WECHAT = 'wechat';
+    public const PROVIDER_ALIPAY = 'alipay';
+    public const PROVIDER_AIRWALLEX = 'airwallex';
+    public const PROVIDER_UNIPAY = 'unipay';
+    public const PROVIDER_JSB = 'jsb';
+    public const PROVIDER_DOUYIN = 'douyin';
+    public const PROVIDER_PAYPAL = 'paypal';
+    public const PROVIDER_STRIPE = 'stripe';
 
     /**
-     * Bootstrap.
-     *
-     * @author yansongda <me@yansongda.cn>
-     *
-     * @throws Exception
+     * 正常模式.
      */
-    public function __construct(array $config)
-    {
-        $this->config = new Config($config);
-
-        $this->registerLogService();
-        $this->registerEventService();
-    }
+    public const MODE_NORMAL = 0;
 
     /**
-     * Magic static call.
-     *
-     * @author yansongda <me@yansongda.cn>
-     *
-     * @param string $method
-     * @param array  $params
-     *
-     * @throws InvalidGatewayException
-     * @throws Exception
+     * 沙箱模式.
      */
-    public static function __callStatic($method, $params): GatewayApplicationInterface
-    {
-        $app = new self(...$params);
-
-        return $app->create($method);
-    }
+    public const MODE_SANDBOX = 1;
 
     /**
-     * Create a instance.
-     *
-     * @author yansongda <me@yansongda.cn>
-     *
-     * @param string $method
-     *
-     * @throws InvalidGatewayException
+     * 服务商模式.
      */
-    protected function create($method): GatewayApplicationInterface
-    {
-        $gateway = __NAMESPACE__.'\\Gateways\\'.Str::studly($method);
+    public const MODE_SERVICE = 2;
 
-        if (class_exists($gateway)) {
-            return self::make($gateway);
+    protected static array $providers = [
+        AlipayServiceProvider::class,
+        AirwallexServiceProvider::class,
+        WechatServiceProvider::class,
+        UnipayServiceProvider::class,
+        JsbServiceProvider::class,
+        DouyinServiceProvider::class,
+        PaypalServiceProvider::class,
+        StripeServiceProvider::class,
+    ];
+
+    /**
+     * @throws ContainerException
+     * @throws ServiceNotFoundException
+     */
+    public static function __callStatic(string $service, array $config = [])
+    {
+        if (!empty($config)) {
+            self::config(...$config);
         }
 
-        throw new InvalidGatewayException("Gateway [{$method}] Not Exists");
+        return Artful::get($service);
     }
 
     /**
-     * Make a gateway.
-     *
-     * @author yansongda <me@yansonga.cn>
-     *
-     * @param string $gateway
-     *
-     * @throws InvalidGatewayException
+     * @throws ContainerException
      */
-    protected function make($gateway): GatewayApplicationInterface
+    public static function config(array|Config $config = [], Closure|ContainerInterface|null $container = null): bool
     {
-        $app = new $gateway($this->config);
+        $force = is_array($config) && ($config['_force'] ?? false);
 
-        if ($app instanceof GatewayApplicationInterface) {
-            return $app;
+        if (!$force && self::isAlreadyConfigured()) {
+            return false;
         }
 
-        throw new InvalidGatewayException("Gateway [{$gateway}] Must Be An Instance Of GatewayApplicationInterface");
+        $configObject = is_array($config) ? new Config($config) : $config;
+        $runtimeConfig = $configObject->all();
+
+        // Force Artful::config() to execute by setting _force in runtime config
+        $runtimeConfig['_force'] = true;
+
+        $result = Artful::config($runtimeConfig, $container);
+
+        if ($result) {
+            Event::addListener(ArtfulStart::class, [PayListener::class, 'artfulStart']);
+            Event::addListener(ArtfulEnd::class, [PayListener::class, 'artfulEnd']);
+            Event::addListener(HttpStart::class, [PayListener::class, 'httpStart']);
+            Event::addListener(HttpEnd::class, [PayListener::class, 'httpEnd']);
+        }
+
+        foreach (self::$providers as $provider) {
+            Artful::load($provider);
+        }
+
+        return $result;
     }
 
     /**
-     * Register log service.
-     *
-     * @author yansongda <me@yansongda.cn>
-     *
-     * @throws Exception
+     * @throws ContainerException
      */
-    protected function registerLogService()
+    public static function set(string $name, mixed $value): void
     {
-        $config = $this->config->get('log');
-        $config['identify'] = 'yansongda.pay';
-
-        $logger = new Logger();
-        $logger->setConfig($config);
-
-        Log::setInstance($logger);
+        Artful::set($name, $value);
     }
 
     /**
-     * Register event service.
-     *
-     * @author yansongda <me@yansongda.cn>
+     * @throws ContainerException
+     * @throws ServiceNotFoundException
      */
-    protected function registerEventService()
+    public static function get(string $service): mixed
     {
-        Events::setDispatcher(Events::createDispatcher());
+        return Artful::get($service);
+    }
 
-        Events::addSubscriber(new KernelLogSubscriber());
+    public static function setContainer(Closure|ContainerInterface|null $container): void
+    {
+        Artful::setContainer($container);
+    }
+
+    public static function clear(): void
+    {
+        Artful::clear();
+        CertManager::clearCache();
+    }
+
+    private static function isAlreadyConfigured(): bool
+    {
+        try {
+            return Artful::has(ConfigInterface::class);
+        } catch (ContainerException) {
+            return false;
+        }
     }
 }
